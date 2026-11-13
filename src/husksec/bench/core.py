@@ -66,14 +66,15 @@ def load_manifest(path) -> list[BenchmarkTask]:
     return tasks
 
 
-def discover_tasks(root, *, manifest_name: str, fields: dict, logger=None) -> tuple[list[BenchmarkTask], list[str]]:
-    """Walk ``root`` for per-task metadata files and convert them to tasks using
-    an EXPLICIT field map (benchmark formats differ; keep the mapping visible and
-    editable). Returns (tasks, skipped) and never silently drops: skipped paths
-    are listed so coverage is never overstated.
+def discover_tasks(root, *, manifest_name: str, parse, logger=None) -> tuple[list[BenchmarkTask], list[str]]:
+    """Walk ``root`` for per-task metadata files and convert each one with
+    ``parse``. Returns (tasks, skipped) and never silently drops: a file that
+    fails to parse is listed in ``skipped`` so coverage is never overstated.
 
-    ``fields`` maps our names -> the metadata's JSON keys, e.g.
-        {"prompt": "prompt", "flag": "answer", "category": "categories", "name": "name"}
+    ``parse(data, path) -> BenchmarkTask`` is benchmark-specific on purpose: real
+    benchmark metadata is rarely a flat key map (a flag may live nested, a name in
+    the directory), so each adapter supplies its own extractor and we keep the
+    mapping visible and editable there.
     """
     log = logger or (lambda event, **kw: None)
     root = Path(root)
@@ -82,18 +83,8 @@ def discover_tasks(root, *, manifest_name: str, fields: dict, logger=None) -> tu
     for meta in sorted(root.rglob(manifest_name)):
         try:
             d = json.loads(meta.read_text(encoding="utf-8"))
-            prompt = d[fields["prompt"]]
-            name = str(d.get(fields.get("name", "name"), meta.parent.name))
-            cat = d.get(fields.get("category", "category"), "")
-            if isinstance(cat, list):
-                cat = ",".join(str(c) for c in cat)
-            tasks.append(BenchmarkTask(
-                name=name, prompt=prompt, category=str(cat),
-                target=str(d.get(fields.get("target", "target"), "")),
-                flag=d.get(fields.get("flag", "flag")),
-                flag_pattern=d.get(fields.get("flag_pattern", "flag_pattern")),
-            ))
-        except (OSError, ValueError, KeyError, TypeError) as e:
+            tasks.append(parse(d, meta))
+        except (OSError, ValueError, KeyError, TypeError, IndexError) as e:
             skipped.append(f"{meta}: {type(e).__name__}: {e}")
             log("task_skipped", path=str(meta), error=str(e))
     log("discover", root=str(root), found=len(tasks), skipped=len(skipped))

@@ -21,8 +21,12 @@ kernel: husk ≈600 SLOC · layer: husksec ≈1.2k SLOC · extra runtime deps: 0
   anything runs; plus a guarded generic shell for local work.
 - **Findings memory** — an append-only JSONL log of hypotheses, evidence and
   status (`pending` / `confirmed` / `refuted`), replayable.
-- **Benchmark adapters** — run against public CTF benchmarks (Cybench, CAIBench)
-  and report coverage, cost (estimated €) and time. We *adapt*, never reimplement.
+- **Benchmark adapters** — load tasks from public CTF benchmarks and run the agent
+  in isolation, reporting coverage, cost (estimated €) and time. **Cybench** maps
+  cleanly: its metadata carries a static ground-truth flag, scored from the
+  transcript. **CAIBench** is *loaded* but honestly **unscoreable** by our method
+  until in-container flag resolution lands (its flags come from commands in the
+  container, not a static field). We *adapt*, never reimplement.
 - **Autoresearch** — a hypothesis → experiment → verification loop where a
   finding is confirmed only by reproducible **ground truth** (a flag, a crash, a
   patch that closes the PoC), never by the model's say-so.
@@ -75,6 +79,10 @@ have the right to, and disclose responsibly.
   the sandbox network) is the documented next step, not yet shipped.
 - Benchmark cost is an **estimate** (tokens approximated from message size); good
   for comparing runs, not a billing oracle.
+- **CAIBench scoring is not shipped.** Its challenges carry no static flag (the
+  flag is produced inside the container), so the adapter loads them but marks them
+  **unscoreable** rather than guess. Cybench, which ships a static ground-truth
+  flag, is fully scoreable. In-container flag resolution for CAIBench is the next step.
 - Capability is **L3–L4** (semi-automated to high-automation), never L5. Nothing
   here is "fully autonomous".
 

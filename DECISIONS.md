@@ -89,15 +89,34 @@ diminuto. Los costes se reportan como estimación, no como factura.
 runs y scaffolds (los tres ejes del estudio CSI: cobertura/coste/tiempo). Si un proveedor expone
 `usage` real, se sustituye aquí en un solo sitio.
 
-## S9. Adaptadores de benchmark: runner genérico + conversores con mapeo explícito
+## S9. Adaptadores de benchmark: runner genérico + extractor por benchmark
 
 **Decisión:** el runner y el scoring (por **flag en la traza**, no por lo que diga
-el modelo) son nuestros y están testeados. Cybench/CAIBench son conversores finos
-con el **mapeo de campos explícito y editable** (`CYBENCH_FIELDS`, `CAIBENCH_FIELDS`);
-los ficheros malformados se **saltan y se listan** (nunca se infla la cobertura).
-**Por qué:** "adaptar, no reimplementar". No clonamos los repos (contienen material
-ofensivo que no conviene tener en local): el mapeo se confirma contra el repo real en un
-Linux aislado, cambiando una sola constante.
+el modelo) son nuestros y están testeados. Cada benchmark aporta su **extractor**
+(`parse(data, path) -> BenchmarkTask`), no un mapa de claves planas; los ficheros
+malformados se **saltan y se listan** (nunca se infla la cobertura).
+**Por qué:** "adaptar, no reimplementar". La primera versión asumía un mapa de
+campos plano **sin verificar** (y el propio código lo avisaba). Al confirmarlo
+contra las fuentes reales —sin clonar— resultó que **ninguno casaba**; de ahí el
+cambio a extractores y las correcciones de S9b.
+
+## S9b. Estructura real verificada de Cybench y CAIBench (y qué implica)
+
+**Cybench** (github.com/andyzorigin/cybench, `main`): el metadata de cada tarea
+vive en `<task>/metadata/metadata.json`. Claves reales: `categories` (lista),
+`easy_prompt`/`hard_prompt`, `subtasks`. El **nombre** sale del directorio, el
+**prompt** de `easy_prompt`, la **flag** del último subtask (`subtasks[-1].answer`)
+y el **target** de `target_host`. No existe `name`/`prompt`/`answer`/`target`
+planos. Encaja con nuestro scoring (flag estática en la traza).
+
+**CAIBench** (arXiv 2510.24317): **no es un repo propio** — vive dentro de
+`aliasrobotics/cai` (rama `archive`), y **no hay `challenge.json` por reto**: todos
+los retos están en un **array JSON agregado** (`ctf-jsons/ctf_configs.jsonl`).
+Clave decisiva: **CAIBench no trae un valor de flag estático**; la flag se obtiene
+ejecutando `flag_commands` dentro del contenedor. Por eso el adaptador **carga**
+los retos pero deja `flag=None`: son honestamente **no puntuables** por nuestro
+método hasta implementar la resolución de flag en contenedor (siguiente paso, no
+entregado). Preferimos decirlo a fingir cobertura.
 
 ## S10. Red del sandbox: enforcement tipado ahora, proxy de egress como siguiente paso
 
@@ -149,6 +168,9 @@ los docs que el código no respaldaba. La revisión adversarial los sacó.
 
 ## Estado
 
-B1–B6 construidos, revisados y verdes (81 tests). Capa: ~1263 SLOC / 1400, 0 deps
-extra. Siguiente posible: proxy de egress con scope (S10), más herramientas
-tipadas, y medición real en Cybench/CAIBench desde un entorno Linux aislado.
+B1–B6 construidos, revisados y verdes (84 tests). Capa: ~1304 SLOC / 1400, 0 deps
+extra. Adaptadores de benchmark **verificados contra las fuentes reales** y
+corregidos (S9/S9b): Cybench puntúa por flag estática; CAIBench se carga pero
+queda no puntuable hasta resolver la flag en contenedor. Siguiente posible: esa
+resolución de flag en CAIBench, proxy de egress con scope (S10), y medición real
+en Cybench desde un entorno Linux con Docker.
