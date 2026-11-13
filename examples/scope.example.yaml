@@ -1,0 +1,28 @@
+# scope.example.yaml - the authorization boundary for an engagement.
+#
+# Copy to scope.yaml and edit. NOTHING the agent does touches a target that is
+# not allowed here. This is a legal and ethical control: only list targets you
+# are authorized to test (public CTFs, labs you own, your own systems, or a
+# signed engagement). Deny-by-default; the exclusion list always wins.
+
+engagement: "htb-practice-lab"      # free-text label, shows up in the audit log
+
+# Explicit human go-ahead. Until this is literally `true`, EVERY target is
+# denied (fail-closed). Flip it only when you have authorization in hand.
+authorized: true
+
+in_scope:
+  - 10.10.11.0/24                   # the lab subnet (CIDR -> matches IPs in range)
+  - 10.129.42.7                     # one specific box
+  - target.htb                      # an exact hostname
+  - "*.target.htb"                  # and its subdomains (not the apex itself)
+  - "https://juice-shop.local"      # a URL: only the host (juice-shop.local) is used
+
+out_of_scope:
+  - 10.10.11.1                      # the gateway: inside the CIDR but OFF LIMITS
+  - "*.prod.target.htb"             # never touch production subdomains (apex too)
+  # NOTE: scope does not resolve DNS. To exclude a host for good, list BOTH the
+  # IP and the name you expect to be used (excluding one form will not block the
+  # other). e.g. both 10.10.11.9 and db.target.htb if that is the same box.
+
+notes: "CTF practice only. Responsible disclosure for anything found."

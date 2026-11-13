@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "husksec"
+version = "0.1.0"
+description = "CSI::nano - a tiny, scope-enforced cybersecurity layer built on the husk agent kernel."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+authors = [{ name = "Fernando Irun" }]
+keywords = ["security", "agent", "ctf", "pentest", "scope", "husk", "minimal"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Security",
+]
+
+# The security layer rides on the kernel and adds NOTHING else at runtime.
+# husk itself carries exactly one dependency (httpx); husksec carries zero
+# beyond husk. The "lightweight layer" claim is a checked invariant, not prose
+# (see tests/test_loc_budget.py).
+dependencies = [
+  "husk",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+husksec = "husksec.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/fernandoirun/husksec"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/husksec"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
